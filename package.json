@@ -1,0 +1,37 @@
+{
+  "name": "cuutruyen-discord-bot",
+  "version": "1.0.0",
+  "description": "Discord Bot & Crawler for Cuutruyen.net manga updates with rich embeds and rate-limiting",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "deploy-commands": "tsx src/discord/deployCommands.ts",
+    "test:crawler": "tsx test/testCrawler.ts",
+    "test:db": "tsx test/testDb.ts"
+  },
+  "keywords": [
+    "cuutruyen",
+    "discord-bot",
+    "manga",
+    "crawler",
+    "playwright",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.4.2",
+    "playwright": "^1.63.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.5.1",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  }
+}
