@@ -1,5 +1,6 @@
 import { config } from "../config/env";
 import { getDatabase } from "../database/db";
+import { curlFetch } from "../utils/curlFetch";
 import { logger } from "../utils/logger";
 import {
   ChapterDetail,
@@ -76,13 +77,16 @@ export class CuutruyenClient {
 
     try {
       logger.crawler(`Logging into Cuutruyen as: ${username}...`);
-      const response = await fetch(`${this.baseUrl}/api/v2/login`, {
+      const response = await curlFetch(`${this.baseUrl}/api/v2/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Cuutruyen-Client": "OfficialWebApp-20250805",
           "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+          Referer: `${this.baseUrl}/login`,
+          Origin: this.baseUrl,
+          Accept: "application/json, text/plain, */*",
         },
         body: JSON.stringify({ username, password }),
       });
@@ -112,7 +116,9 @@ export class CuutruyenClient {
     const headers: Record<string, string> = {
       "Cuutruyen-Client": "OfficialWebApp-20250805",
       "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+      Referer: `${this.baseUrl}/`,
+      Origin: this.baseUrl,
       Accept: "application/json, text/plain, */*",
     };
 
@@ -131,8 +137,8 @@ export class CuutruyenClient {
   public async getLatestUpdates(): Promise<MangaListItem[]> {
     try {
       const [homeRes, recentRes] = await Promise.all([
-        fetch(`${this.baseUrl}/api/v2/home_a`, { headers: this.getHeaders() }).catch(() => null),
-        fetch(`${this.baseUrl}/api/v2/mangas/recently_updated?page=1&per_page=25`, { headers: this.getHeaders() }).catch(() => null),
+        curlFetch(`${this.baseUrl}/api/v2/home_a`, { headers: this.getHeaders() }).catch(() => null),
+        curlFetch(`${this.baseUrl}/api/v2/mangas/recently_updated?page=1&per_page=25`, { headers: this.getHeaders() }).catch(() => null),
       ]);
 
       const items: MangaListItem[] = [];
@@ -180,13 +186,13 @@ export class CuutruyenClient {
   public async getRecentlyUpdated(page: number = 1, perPage: number = 20): Promise<MangaListItem[]> {
     const url = `${this.baseUrl}/api/v2/mangas/recently_updated?page=${page}&per_page=${perPage}`;
     try {
-      const response = await fetch(url, { headers: this.getHeaders() });
+      const response = await curlFetch(url, { headers: this.getHeaders() });
       if (response.status === 401 || response.status === 403) {
         // Token might have expired, try re-login
         logger.warn("Received 401/403, attempting to re-authenticate...");
         const reloginSuccess = await this.login(true);
         if (reloginSuccess) {
-          const retryRes = await fetch(url, { headers: this.getHeaders() });
+          const retryRes = await curlFetch(url, { headers: this.getHeaders() });
           const json = (await retryRes.json()) as any;
           return (json && json.data) || [];
         }
@@ -216,7 +222,7 @@ export class CuutruyenClient {
 
     const url = `${this.baseUrl}/api/v2/mangas/following?page=${page}&per_page=${perPage}`;
     try {
-      const response = await fetch(url, { headers: this.getHeaders() });
+      const response = await curlFetch(url, { headers: this.getHeaders() });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status} fetching following`);
       }
@@ -236,7 +242,7 @@ export class CuutruyenClient {
   public async getMangaDetail(mangaId: number): Promise<MangaDetail | null> {
     const url = `${this.baseUrl}/api/v2/mangas/${mangaId}`;
     try {
-      const response = await fetch(url, { headers: this.getHeaders() });
+      const response = await curlFetch(url, { headers: this.getHeaders() });
       if (!response.ok) {
         return null;
       }
@@ -258,7 +264,7 @@ export class CuutruyenClient {
   public async getChapterDetail(chapterId: number): Promise<ChapterDetail | null> {
     const url = `${this.baseUrl}/api/v2/chapters/${chapterId}`;
     try {
-      const response = await fetch(url, { headers: this.getHeaders() });
+      const response = await curlFetch(url, { headers: this.getHeaders() });
       if (!response.ok) {
         return null;
       }
@@ -273,7 +279,7 @@ export class CuutruyenClient {
   public async quickSearch(query: string): Promise<any[]> {
     const url = `${this.baseUrl}/api/v2/mangas/quick_search?q=${encodeURIComponent(query)}`;
     try {
-      const response = await fetch(url, { headers: this.getHeaders() });
+      const response = await curlFetch(url, { headers: this.getHeaders() });
       if (!response.ok) return [];
       const json = (await response.json()) as any;
       return (json && json.data) || [];
