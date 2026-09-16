@@ -45,5 +45,6 @@ Thumbs.db
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+# Subagent scratch data
+.agents/
 

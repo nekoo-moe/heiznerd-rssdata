@@ -16,6 +16,8 @@ export function getDatabase(): Database.Database {
 
   dbInstance = new Database(config.database.path);
   dbInstance.pragma("journal_mode = WAL");
+  dbInstance.pragma("busy_timeout = 5000");
+  dbInstance.pragma("synchronous = NORMAL");
 
   initSchema(dbInstance);
   logger.info(`Database connected at: ${config.database.path}`);
@@ -54,5 +56,39 @@ function initSchema(db: Database.Database) {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Guild anime channel settings for anime notifications (Requirement R3)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS guild_anime_channels (
+      guild_id TEXT PRIMARY KEY,
+      channel_id TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_guild_anime_channels_channel ON guild_anime_channels (channel_id);
+  `);
+
+  // Notified anime episodes history to prevent duplicate alerts (Requirement R3)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notified_episodes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      anime_title TEXT NOT NULL,
+      episode_name TEXT,
+      episode_url TEXT NOT NULL UNIQUE,
+      anime_url TEXT,
+      notified_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_notified_episodes_url ON notified_episodes (episode_url);
+    CREATE INDEX IF NOT EXISTS idx_notified_episodes_notified_at ON notified_episodes (notified_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notified_episodes_anime_url ON notified_episodes (anime_url);
+  `);
 }
+
+export function closeDatabase(): void {
+  if (dbInstance) {
+    dbInstance.close();
+    dbInstance = null;
+  }
+}
+
 

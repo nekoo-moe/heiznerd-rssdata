@@ -11,10 +11,14 @@ export class PlaywrightCrawler {
       this.browser = await chromium.launch({
         headless: true,
         args: [
+          "--disable-blink-features=AutomationControlled",
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--disable-dev-shm-usage",
           "--disable-gpu",
+          "--disable-web-security",
+          "--disable-features=IsolateOrigins,site-per-process",
+          "--window-size=1920,1080",
         ],
       });
     }
@@ -25,9 +29,18 @@ export class PlaywrightCrawler {
     const browser = await this.getBrowser();
     const context = await browser.newContext({
       userAgent:
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-      viewport: { width: 1280, height: 720 },
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+      viewport: { width: 1920, height: 1080 },
       locale: "vi-VN",
+      timezoneId: "Asia/Ho_Chi_Minh",
+    });
+
+    // Stealth init script to mask webdriver & browser automation signatures
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+      (globalThis as any).chrome = { runtime: {} };
+      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, "languages", { get: () => ["vi-VN", "vi", "en-US", "en"] });
     });
 
     const page = await context.newPage();

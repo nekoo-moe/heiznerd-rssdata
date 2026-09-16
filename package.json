@@ -9,7 +9,12 @@
     "dev": "tsx src/index.ts",
     "deploy-commands": "tsx src/discord/deployCommands.ts",
     "test:crawler": "tsx test/testCrawler.ts",
-    "test:db": "tsx test/testDb.ts"
+    "test:db": "tsx test/testDb.ts",
+    "test:db:anime": "tsx test/testDbAnime.ts",
+    "test:db:adversarial": "tsx test/testDbAdversarial.ts",
+    "test:domain:resolver": "tsx test/testDomainResolver.ts",
+    "test:domain:adversarial": "tsx test/testAdversarialDomainResolver.ts",
+    "test:scraper:anime": "tsx test/testAnimevietsubScraper.ts"
   },
   "keywords": [
     "cuutruyen",

@@ -156,8 +156,15 @@ export class CrawlerManager {
             } else {
               logger.warn(`Configured channel ${setting.channel_id} is not accessible.`);
             }
-          } catch (err) {
-            logger.error(`Failed to send alert to channel ${setting.channel_id}:`, err);
+          } catch (err: any) {
+            if (err?.code === 10003 || err?.status === 404) {
+              logger.warn(
+                `Channel ${setting.channel_id} does not exist on Discord (Unknown Channel). Auto-removing from database.`
+              );
+              GuildRepository.removeChannel(setting.guild_id);
+            } else {
+              logger.error(`Failed to send alert to channel ${setting.channel_id}:`, err);
+            }
           }
         });
       }
