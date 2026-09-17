@@ -92,8 +92,8 @@ DISCORD_CLIENT_ID=your_discord_application_client_id_here
 # CỨU TRUYỆN CONFIGURATION
 # ==========================================
 CUUTRUYEN_BASE_URL=https://cuutruyen.net
-CUUTRUYEN_USERNAME=hwuysuywa
-CUUTRUYEN_PASSWORD=Nguynqi48@
+CUUTRUYEN_USERNAME=
+CUUTRUYEN_PASSWORD=
 
 # Chu kỳ quét (giây) - mặc định 180s (3 phút)
 POLL_INTERVAL_SECONDS=180
