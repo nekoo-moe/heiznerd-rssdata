@@ -7,11 +7,15 @@ import {
 import { anilistService, animevietsubScraper } from "../anime";
 import { config } from "../config/env";
 import { cuutruyenClient } from "../crawler/cuutruyenClient";
+import { hakoScraper } from "../ln";
+import { truyenqqScraper } from "../manhwa";
 import { logger } from "../utils/logger";
 import { DiscordAnimeEmbedBuilder } from "./animeEmbedBuilder";
 import { commandMap } from "./commands";
 import { deployCommands } from "./deployCommands";
 import { DiscordEmbedBuilder } from "./embedBuilder";
+import { DiscordLnEmbedBuilder } from "./lnEmbedBuilder";
+import { DiscordManhwaEmbedBuilder } from "./manhwaEmbedBuilder";
 
 export const discordClient = new Client({
   intents: [
@@ -129,6 +133,62 @@ discordClient.on(Events.InteractionCreate, async (interaction: Interaction) => {
         logger.error("Error displaying anime detail card:", error);
         await interaction.editReply({
           content: "❌ Đã có lỗi xảy ra khi tải chi tiết anime.",
+        });
+      }
+      return;
+    }
+
+    if (interaction.customId === "select_ln_detail") {
+      try {
+        await interaction.deferReply({ ephemeral: true });
+        const seriesUrl = interaction.values[0];
+        if (!seriesUrl) {
+          await interaction.editReply({ content: "❌ URL Light Novel không hợp lệ." });
+          return;
+        }
+
+        const detail = await hakoScraper.getNovelDetails(seriesUrl);
+        if (!detail) {
+          await interaction.editReply({
+            content: "❌ Không thể tải thông tin chi tiết của bộ Light Novel này từ Hako.",
+          });
+          return;
+        }
+
+        const payload = DiscordLnEmbedBuilder.buildLnDetailCard(detail);
+        await interaction.editReply(payload as any);
+      } catch (error) {
+        logger.error("Error displaying Light Novel detail card:", error);
+        await interaction.editReply({
+          content: "❌ Đã có lỗi xảy ra khi tải chi tiết Light Novel.",
+        });
+      }
+      return;
+    }
+
+    if (interaction.customId === "select_manhwa_detail") {
+      try {
+        await interaction.deferReply({ ephemeral: true });
+        const manhwaUrl = interaction.values[0];
+        if (!manhwaUrl) {
+          await interaction.editReply({ content: "❌ URL Manhwa không hợp lệ." });
+          return;
+        }
+
+        const detail = await truyenqqScraper.getManhwaDetails(manhwaUrl);
+        if (!detail) {
+          await interaction.editReply({
+            content: "❌ Không thể tải thông tin chi tiết của bộ Manhwa này từ TruyenQQ.",
+          });
+          return;
+        }
+
+        const payload = DiscordManhwaEmbedBuilder.buildManhwaDetailCard(detail);
+        await interaction.editReply(payload as any);
+      } catch (error) {
+        logger.error("Error displaying Manhwa detail card:", error);
+        await interaction.editReply({
+          content: "❌ Đã có lỗi xảy ra khi tải chi tiết Manhwa.",
         });
       }
       return;

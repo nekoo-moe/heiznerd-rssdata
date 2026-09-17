@@ -339,16 +339,24 @@ export class DiscordEmbedBuilder {
   }
 
   /**
-   * Builds Component V2 system status card.
+   * Builds Component V2 system status card for all 4 trackers.
    */
   public static buildStatus(statusData: {
     isLoggedIn: boolean;
     userId: number | null;
-    configuredChannelsCount: number;
-    notifiedChaptersCount: number;
+    mangaChannelsCount: number;
+    mangaChaptersCount: number;
+    animeChannelsCount: number;
+    animeEpisodesCount: number;
+    lnChannelsCount: number;
+    lnChaptersCount: number;
+    manhwaChannelsCount: number;
+    manhwaChaptersCount: number;
     pollInterval: number;
     uptimeSeconds: number;
     crawlerMode: string;
+    animeDomain?: string | null;
+    manhwaDomain?: string | null;
   }) {
     const hours = Math.floor(statusData.uptimeSeconds / 3600);
     const minutes = Math.floor((statusData.uptimeSeconds % 3600) / 60);
@@ -358,9 +366,12 @@ export class DiscordEmbedBuilder {
     const container = new ContainerBuilder().setAccentColor(0x4dba87);
 
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent("## 📊 Trạng Thái Hệ Thống Bot & Crawler")
+      new TextDisplayBuilder().setContent("## 📊 Trạng Thái Hệ Thống & Bộ Tứ Trackers")
     );
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+    const animeDomainStr = statusData.animeDomain ? ` • \`${statusData.animeDomain}\`` : "";
+    const manhwaDomainStr = statusData.manhwaDomain ? ` • \`${statusData.manhwaDomain}\`` : "";
 
     const statusText =
       `🌐 **Kết nối Cuutruyen:** ${
@@ -369,11 +380,12 @@ export class DiscordEmbedBuilder {
           : "⚠️ Chưa đăng nhập / Guest"
       }\n` +
       `⚙️ **Chế độ UI:** \`Discord Components V2\`\n` +
-      `🕷️ **Chế độ Crawler:** \`${statusData.crawlerMode.toUpperCase()}\`\n` +
-      `⏱️ **Chu kỳ quét:** \`${statusData.pollInterval}s\`\n` +
-      `📢 **Kênh nhận tin:** \`${statusData.configuredChannelsCount} server/kênh\`\n` +
-      `📦 **Chapter đã thông báo:** \`${statusData.notifiedChaptersCount} chương\`\n` +
-      `⏳ **Thời gian hoạt động:** \`${uptimeStr}\``;
+      `⏳ **Thời gian hoạt động:** \`${uptimeStr}\`\n\n` +
+      `### 📊 Thống Kê Hoạt Động Bộ Tứ Trackers:\n` +
+      `📚 **Cuutruyen (Manga):** \`${statusData.mangaChannelsCount}\` kênh • \`${statusData.mangaChaptersCount}\` chương đã lưu\n` +
+      `🎬 **AnimeVietsub (Anime):** \`${statusData.animeChannelsCount}\` kênh • \`${statusData.animeEpisodesCount}\` tập đã lưu${animeDomainStr}\n` +
+      `📖 **Hako (Light Novel):** \`${statusData.lnChannelsCount}\` kênh • \`${statusData.lnChaptersCount}\` chương đã lưu\n` +
+      `🇰🇷 **TruyenQQ (Manhwa):** \`${statusData.manhwaChannelsCount}\` kênh • \`${statusData.manhwaChaptersCount}\` chapter đã lưu${manhwaDomainStr}`;
 
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(statusText));
 

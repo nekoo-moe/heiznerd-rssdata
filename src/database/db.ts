@@ -82,6 +82,57 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_notified_episodes_notified_at ON notified_episodes (notified_at DESC);
     CREATE INDEX IF NOT EXISTS idx_notified_episodes_anime_url ON notified_episodes (anime_url);
   `);
+
+  // Guild Light Novel channel settings (Hako)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS guild_ln_channels (
+      guild_id TEXT PRIMARY KEY,
+      channel_id TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_guild_ln_channels_channel ON guild_ln_channels (channel_id);
+  `);
+
+  // Notified Light Novel chapters history (Hako)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notified_ln_chapters (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      series_title TEXT NOT NULL,
+      volume_title TEXT,
+      chapter_title TEXT,
+      chapter_url TEXT NOT NULL UNIQUE,
+      series_url TEXT,
+      notified_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_notified_ln_chapters_url ON notified_ln_chapters (chapter_url);
+    CREATE INDEX IF NOT EXISTS idx_notified_ln_chapters_notified_at ON notified_ln_chapters (notified_at DESC);
+  `);
+
+  // Guild Manhwa channel settings (TruyenQQ)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS guild_manhwa_channels (
+      guild_id TEXT PRIMARY KEY,
+      channel_id TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_guild_manhwa_channels_channel ON guild_manhwa_channels (channel_id);
+  `);
+
+  // Notified Manhwa chapters history (TruyenQQ)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notified_manhwa_chapters (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      manhwa_title TEXT NOT NULL,
+      chapter_title TEXT,
+      chapter_url TEXT NOT NULL UNIQUE,
+      manhwa_url TEXT,
+      notified_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_notified_manhwa_chapters_url ON notified_manhwa_chapters (chapter_url);
+    CREATE INDEX IF NOT EXISTS idx_notified_manhwa_chapters_notified_at ON notified_manhwa_chapters (notified_at DESC);
+  `);
 }
 
 export function closeDatabase(): void {

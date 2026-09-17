@@ -3,13 +3,15 @@ import { crawlerManager } from "./crawler/crawlerManager";
 import { cuutruyenClient } from "./crawler/cuutruyenClient";
 import { playwrightCrawler } from "./crawler/playwrightCrawler";
 import { animeCrawlerManager, animevietsubScraper } from "./anime";
+import { lnCrawlerManager } from "./ln";
+import { manhwaCrawlerManager } from "./manhwa";
 import { getDatabase } from "./database/db";
 import { discordClient, startDiscordBot } from "./discord/client";
 import { logger } from "./utils/logger";
 
 async function bootstrap() {
   console.log("==================================================");
-  console.log("   CUUTRUYEN & ANIMEVIETSUB DISCORD BOT          ");
+  console.log("   CUUTRUYEN & ANIMEVIETSUB & HAKO & TRUYENQQ BOT ");
   console.log("==================================================");
 
   // 1. Initialize SQLite Database
@@ -33,6 +35,8 @@ async function bootstrap() {
       await startDiscordBot();
       crawlerManager.setDiscordClient(discordClient);
       animeCrawlerManager.setDiscordClient(discordClient);
+      lnCrawlerManager.setDiscordClient(discordClient);
+      manhwaCrawlerManager.setDiscordClient(discordClient);
     } catch (e) {
       logger.error("Could not connect Discord bot:", e);
     }
@@ -42,9 +46,11 @@ async function bootstrap() {
     );
   }
 
-  // 4. Start Background Crawlers (Manga & Anime)
+  // 4. Start Background Crawlers (Manga, Anime, Light Novel, Manhwa)
   await crawlerManager.start();
   await animeCrawlerManager.start();
+  await lnCrawlerManager.start();
+  await manhwaCrawlerManager.start();
 
   logger.success("System fully initialized and running!");
 }
@@ -53,6 +59,8 @@ async function shutdown() {
   logger.info("Gracefully shutting down...");
   crawlerManager.stop();
   animeCrawlerManager.stop();
+  lnCrawlerManager.stop();
+  manhwaCrawlerManager.stop();
   await playwrightCrawler.close();
   await animevietsubScraper.close();
   discordClient.destroy();
