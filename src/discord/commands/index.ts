@@ -1,30 +1,35 @@
 import { BotCommand } from "../types";
-import { checkNowCommand } from "./checknow";
-import { latestCommand } from "./latest";
-import { newestCommand } from "./newest";
-import { removeChannelCommand } from "./removechannel";
-import { searchCommand } from "./search";
-import { setChannelCommand } from "./setchannel";
-import { statusCommand } from "./status";
-import { setChannelAnimeCommand } from "./setchannelAnime";
-import { removeChannelAnimeCommand } from "./removechannelAnime";
 import { animeLatestCommand } from "./animeLatest";
 import { animeNewestCommand } from "./animeNewest";
+import { animeRemoveChannelCommand } from "./removechannelAnime";
 import { animeSearchCommand } from "./animeSearch";
+import { animeSetChannelCommand } from "./setchannelAnime";
+import { checkNowCommand } from "./checknow";
+import { mangaLatestCommand } from "./latest";
+import { mangaNewestCommand } from "./newest";
+import { mangaRemoveChannelCommand } from "./removechannel";
+import { mangaSearchCommand } from "./search";
+import { mangaSetChannelCommand } from "./setchannel";
+import { statusCommand } from "./status";
 
 export const commands: BotCommand[] = [
-  setChannelCommand,
-  removeChannelCommand,
-  statusCommand,
-  checkNowCommand,
-  latestCommand,
-  newestCommand,
-  searchCommand,
-  setChannelAnimeCommand,
-  removeChannelAnimeCommand,
+  // Manga (Cuutruyen) commands
+  mangaSearchCommand,
+  mangaLatestCommand,
+  mangaNewestCommand,
+  mangaSetChannelCommand,
+  mangaRemoveChannelCommand,
+
+  // Anime (AnimeVietsub) commands
+  animeSearchCommand,
   animeLatestCommand,
   animeNewestCommand,
-  animeSearchCommand,
+  animeSetChannelCommand,
+  animeRemoveChannelCommand,
+
+  // System commands
+  statusCommand,
+  checkNowCommand,
 ];
 
 export const commandMap = new Map<string, BotCommand>();

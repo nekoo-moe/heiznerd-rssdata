@@ -4,7 +4,11 @@ import { NormalizedTitle } from "./types";
  * Normalizes raw Vietnamese/English anime titles extracted from AnimeVietsub
  * to maximize AniList GraphQL match rate.
  */
-export function normalizeAnimeTitle(rawTitle: string, animeUrl?: string): NormalizedTitle {
+export function normalizeAnimeTitle(
+  rawTitle: string,
+  animeUrl?: string,
+  extraCandidates?: string[]
+): NormalizedTitle {
   if (!rawTitle || typeof rawTitle !== "string") {
     return { primary: "", candidates: [] };
   }
@@ -110,6 +114,24 @@ export function normalizeAnimeTitle(rawTitle: string, animeUrl?: string): Normal
     candidates.push(mainPrefixMatch);
   }
 
+  // If there's a colon, also try the distinctive part after the colon (e.g. "Honoo no Toukyuujo: Dodge Danko" -> "Dodge Danko")
+  if (cleaned.includes(":")) {
+    const afterColon = cleaned.split(":")[1]?.trim();
+    if (afterColon && afterColon.length >= 3 && !candidates.includes(afterColon)) {
+      candidates.push(afterColon);
+    }
+  }
+
+  // Extra candidate titles (e.g. alternative English/Romaji titles from detail.subTitle)
+  if (extraCandidates && Array.isArray(extraCandidates)) {
+    for (const extra of extraCandidates) {
+      const cleanExtra = extra.trim().replace(/\s*\(\d{4}\)$/, "").trim();
+      if (cleanExtra && cleanExtra.length >= 3 && !candidates.includes(cleanExtra)) {
+        candidates.push(cleanExtra);
+      }
+    }
+  }
+
   const primary = candidates[0] || rawTitle.trim();
 
   return {
@@ -119,3 +141,24 @@ export function normalizeAnimeTitle(rawTitle: string, animeUrl?: string): Normal
     season,
   };
 }
+
+/**
+ * Checks whether an anime item is a Chinese animation/donghua or tagged as Cartoon on AnimeVietsub.
+ */
+export function isChineseAnimation(
+  detail?: { country?: string; isChineseAnimation?: boolean; genres?: string[] } | null,
+  metadata?: { countryOfOrigin?: string | null } | null
+): boolean {
+  if (detail?.isChineseAnimation) return true;
+  if (detail?.country && /trung\s*quốc/i.test(detail.country)) return true;
+  if (
+    detail?.genres?.some((g) =>
+      /cartoon|hoạt\s*hình\s*trung\s*quốc|trung\s*quốc/i.test(g)
+    )
+  ) {
+    return true;
+  }
+  if (metadata?.countryOfOrigin === "CN") return true;
+  return false;
+}
+

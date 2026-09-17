@@ -20,6 +20,7 @@ query ($search: String) {
       color
     }
     bannerImage
+    countryOfOrigin
     description(asHtml: false)
     episodes
     averageScore
@@ -45,18 +46,26 @@ export class AnilistService implements IAnilistService {
   private minRequestIntervalMs = 350; // Spacing to avoid burst 429s
   private requestQueue: Promise<void> = Promise.resolve();
 
-  public normalizeTitle(rawTitle: string, animeUrl?: string): NormalizedTitle {
-    return normalizeAnimeTitle(rawTitle, animeUrl);
+  public normalizeTitle(
+    rawTitle: string,
+    animeUrl?: string,
+    extraCandidates?: string[]
+  ): NormalizedTitle {
+    return normalizeAnimeTitle(rawTitle, animeUrl, extraCandidates);
   }
 
   /**
    * Enriches an anime title with AniList metadata and wide panoramic banner.
    * Checks cache, then iterates candidate titles until a high-confidence match is found.
    */
-  public async enrich(title: string, animeUrl?: string): Promise<AniListMetadata | null> {
+  public async enrich(
+    title: string,
+    animeUrl?: string,
+    extraCandidates?: string[]
+  ): Promise<AniListMetadata | null> {
     if (!title || typeof title !== "string") return null;
 
-    const normalized = this.normalizeTitle(title, animeUrl);
+    const normalized = this.normalizeTitle(title, animeUrl, extraCandidates);
     const cacheKey = (animeUrl || normalized.primary).toLowerCase().trim();
 
     // 1. Check in-memory cache
@@ -98,72 +107,90 @@ export class AnilistService implements IAnilistService {
     return new Promise<AniListMetadata | null>((resolve, reject) => {
       this.requestQueue = this.requestQueue
         .then(async () => {
-          const now = Date.now();
-          const elapsed = now - this.lastRequestTime;
-          if (elapsed < this.minRequestIntervalMs) {
-            await new Promise((r) => setTimeout(r, this.minRequestIntervalMs - elapsed));
-          }
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            const now = Date.now();
+            const elapsed = now - this.lastRequestTime;
+            if (elapsed < this.minRequestIntervalMs) {
+              await new Promise((r) => setTimeout(r, this.minRequestIntervalMs - elapsed));
+            }
 
-          this.lastRequestTime = Date.now();
+            this.lastRequestTime = Date.now();
 
-          const response = await fetch(ANILIST_GRAPHQL_ENDPOINT, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-              "User-Agent": "NekoStream-AniList/1.0",
-            },
-            body: JSON.stringify({
-              query: SEARCH_ANIME_QUERY,
-              variables: { search },
-            }),
-          });
+            let response: Response;
+            try {
+              const controller = new AbortController();
+              const timer = setTimeout(() => controller.abort(), 8000);
 
-          if (response.status === 429) {
-            const retrySec = parseInt(response.headers.get("Retry-After") || "5", 10);
-            logger.warn(`[AniList] Rate limit reached. Backing off for ${retrySec}s...`);
-            await new Promise((r) => setTimeout(r, (retrySec + 1) * 1000));
-            return this.queryAnilist(search);
-          }
-
-          if (!response.ok) {
-            if (response.status === 404) {
+              response = await fetch(ANILIST_GRAPHQL_ENDPOINT, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                  "User-Agent": "NekoStream-AniList/1.0",
+                },
+                body: JSON.stringify({
+                  query: SEARCH_ANIME_QUERY,
+                  variables: { search },
+                }),
+                signal: controller.signal,
+              });
+              clearTimeout(timer);
+            } catch (err: any) {
+              logger.warn(`[AniList] Network error querying "${search}": ${err?.message || err}`);
               return null;
             }
-            throw new Error(`AniList returned HTTP ${response.status}: ${response.statusText}`);
+
+            if (response.status === 429) {
+              const retrySec = parseInt(response.headers.get("Retry-After") || "5", 10);
+              logger.warn(`[AniList] Rate limit reached. Backing off for ${retrySec}s (attempt ${attempt}/2)...`);
+              if (attempt < 2) {
+                await new Promise((r) => setTimeout(r, (Math.min(retrySec, 10) + 1) * 1000));
+                continue;
+              }
+              return null;
+            }
+
+            if (!response.ok) {
+              if (response.status === 404) {
+                return null;
+              }
+              throw new Error(`AniList returned HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const json = (await response.json()) as any;
+            const media = json?.data?.Media;
+            if (!media) return null;
+
+            const studio =
+              media.studios?.nodes && media.studios.nodes.length > 0
+                ? media.studios.nodes[0].name
+                : null;
+
+            const metadata: AniListMetadata = {
+              id: media.id,
+              romajiTitle: media.title?.romaji || search,
+              englishTitle: media.title?.english || null,
+              nativeTitle: media.title?.native || null,
+              bannerImage: media.bannerImage || null,
+              coverImage:
+                media.coverImage?.extraLarge ||
+                media.coverImage?.large ||
+                "",
+              color: media.coverImage?.color || "#4dba87",
+              genres: media.genres || [],
+              studio,
+              averageScore: media.averageScore ?? null,
+              episodes: media.episodes ?? null,
+              description: media.description
+                ? media.description.replace(/<[^>]*>?/gm, "").trim()
+                : null,
+              siteUrl: media.siteUrl || `https://anilist.co/anime/${media.id}`,
+              countryOfOrigin: media.countryOfOrigin || null,
+            };
+
+            return metadata;
           }
-
-          const json = (await response.json()) as any;
-          const media = json?.data?.Media;
-          if (!media) return null;
-
-          const studio =
-            media.studios?.nodes && media.studios.nodes.length > 0
-              ? media.studios.nodes[0].name
-              : null;
-
-          const metadata: AniListMetadata = {
-            id: media.id,
-            romajiTitle: media.title?.romaji || search,
-            englishTitle: media.title?.english || null,
-            nativeTitle: media.title?.native || null,
-            bannerImage: media.bannerImage || null,
-            coverImage:
-              media.coverImage?.extraLarge ||
-              media.coverImage?.large ||
-              "",
-            color: media.coverImage?.color || "#4dba87",
-            genres: media.genres || [],
-            studio,
-            averageScore: media.averageScore ?? null,
-            episodes: media.episodes ?? null,
-            description: media.description
-              ? media.description.replace(/<[^>]*>?/gm, "").trim()
-              : null,
-            siteUrl: media.siteUrl || `https://anilist.co/anime/${media.id}`,
-          };
-
-          return metadata;
+          return null;
         })
         .then(resolve)
         .catch(reject);

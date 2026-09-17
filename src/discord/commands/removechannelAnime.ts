@@ -6,10 +6,10 @@ import {
 import { GuildAnimeRepository } from "../../database/repositories/guildAnimeRepo";
 import { BotCommand } from "../types";
 
-export const removeChannelAnimeCommand: BotCommand = {
+export const animeRemoveChannelCommand: BotCommand = {
   data: new SlashCommandBuilder()
-    .setName("removechannel-anime")
-    .setDescription("Hủy kênh nhận thông báo anime trên máy chủ này")
+    .setName("anime-removechannel")
+    .setDescription("🔕 Hủy kênh nhận thông báo anime trên máy chủ này")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
   execute: async (interaction: ChatInputCommandInteraction) => {
     if (!interaction.guildId) {

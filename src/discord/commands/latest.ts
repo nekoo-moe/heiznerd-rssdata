@@ -7,10 +7,10 @@ import { cuutruyenClient } from "../../crawler/cuutruyenClient";
 import { DiscordEmbedBuilder } from "../embedBuilder";
 import { BotCommand } from "../types";
 
-export const latestCommand: BotCommand = {
+export const mangaLatestCommand: BotCommand = {
   data: new SlashCommandBuilder()
-    .setName("latest")
-    .setDescription("Xem các truyện mới cập nhật với Discord Component V2 và ảnh bìa")
+    .setName("manga-latest")
+    .setDescription("📚 Xem danh sách các chương truyện tranh mới cập nhật từ Cuutruyen")
     .addIntegerOption((option) =>
       option
         .setName("count")

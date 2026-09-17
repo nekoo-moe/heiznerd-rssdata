@@ -1,12 +1,12 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-import { animevietsubScraper, anilistService } from "../../anime";
+import { animevietsubScraper, anilistService, isChineseAnimation, AnimeEpisodeItem, AnimeDetailData, AniListMetadata } from "../../anime";
 import { DiscordAnimeEmbedBuilder } from "../animeEmbedBuilder";
 import { BotCommand } from "../types";
 
 export const animeLatestCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("anime-latest")
-    .setDescription("Xem các tập anime mới cập nhật từ AnimeVietsub kèm banner AniList")
+    .setDescription("🎬 Xem danh sách các tập anime mới cập nhật từ AnimeVietsub")
     .addIntegerOption((option) =>
       option
         .setName("count")
@@ -19,7 +19,7 @@ export const animeLatestCommand: BotCommand = {
     await interaction.deferReply();
 
     const count = interaction.options.getInteger("count") || 3;
-    const episodes = await animevietsubScraper.getLatestEpisodes(count);
+    const episodes = await animevietsubScraper.getLatestEpisodes(Math.min(25, count * 3));
 
     if (!episodes || episodes.length === 0) {
       await interaction.editReply({
@@ -28,12 +28,31 @@ export const animeLatestCommand: BotCommand = {
       return;
     }
 
-    const items = await Promise.all(
-      episodes.slice(0, count).map(async (ep) => {
-        const metadata = await anilistService.enrich(ep.animeTitle, ep.animeUrl).catch(() => null);
-        return { episode: ep, metadata };
-      })
-    );
+    const items: Array<{
+      episode: AnimeEpisodeItem;
+      metadata: AniListMetadata | null;
+      detail?: AnimeDetailData | null;
+    }> = [];
+
+    for (const ep of episodes) {
+      if (items.length >= count) break;
+
+      const detail = await animevietsubScraper.getAnimeDetails(ep.animeUrl).catch(() => null);
+      if (isChineseAnimation(detail, null)) continue;
+
+      const extraCandidates = detail?.subTitle
+        ? detail.subTitle.split(/[,;]/).map((s) => s.trim())
+        : undefined;
+
+      const metadata = await Promise.race([
+        anilistService.enrich(ep.animeTitle, ep.animeUrl, extraCandidates),
+        new Promise<null>((r) => setTimeout(() => r(null), 3000)),
+      ]).catch(() => null);
+
+      if (isChineseAnimation(detail, metadata)) continue;
+
+      items.push({ episode: ep, metadata, detail });
+    }
 
     const payload = DiscordAnimeEmbedBuilder.buildAnimeLatestCards(items);
     await interaction.editReply(payload as any);

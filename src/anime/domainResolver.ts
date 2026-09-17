@@ -44,6 +44,7 @@ const BROWSER_USER_AGENT =
  * Prevents DNS hijack / parking redirect attacks:
  * - 'animevietsub.zip'       -> parts: ['animevietsub', 'zip']       -> match: 'animevietsub' (TRUE)
  * - 'www.animevietsub.tv'   -> parts: ['www', 'animevietsub', 'tv']  -> match: 'animevietsub' (TRUE)
+ * - 'animevietsubs.com'      -> parts: ['animevietsubs', 'com']      -> match: 'animevietsub' (FALSE - fake clone)
  * - 'click-v4.expclknb.com' -> parts: ['click-v4', 'expclknb', 'com']-> match: 'expclknb'     (FALSE)
  * - 'animevietsub.hacker.io'-> parts: ['animevietsub', 'hacker', 'io']-> match: 'hacker'      (FALSE)
  */
@@ -127,14 +128,18 @@ export function verifyProviderHtml(html: string): VerifyResult {
   }
 
   // 5. Positive Content Signature Check:
-  // Must include '/phim/' (anime page route) and 'tpost' / 'tpostmv' (card container class)
-  const hasPhim = lower.includes("/phim/");
-  const hasTpost = lower.includes("tpost");
+  // Must include '/phim/' or '/anime/' (anime page route) and a card container class
+  const hasPhim = lower.includes("/phim/") || lower.includes("/anime/");
+  const hasCard =
+    lower.includes("tpost") ||
+    lower.includes("anime-card") ||
+    lower.includes("film-item") ||
+    lower.includes("anime-grid");
 
-  if (!hasPhim || !hasTpost) {
+  if (!hasPhim || !hasCard) {
     return {
       ok: false,
-      reason: `Missing content signatures (hasPhim=${hasPhim}, hasTpost=${hasTpost})`,
+      reason: `Missing content signatures (hasPhim=${hasPhim}, hasCard=${hasCard})`,
       contentLength: html.length,
     };
   }
@@ -424,8 +429,26 @@ export class AnimevietsubDomainResolver implements IDomainResolver, IAnimevietsu
           lower.includes("just a moment") ||
           lower.includes("_cf_chl_opt") ||
           lower.includes("turnstile") ||
+          lower.includes("xác minh an toàn") ||
+          lower.includes("xac minh an toan") ||
           res.headers.get("server")?.toLowerCase().includes("cloudflare") ||
           res.headers.get("cf-ray") !== null;
+
+        // If the 403 challenge specifically belongs to AnimeVietsub, it is a genuine active origin
+        const isAnimevietsubChallenge =
+          isCloudflare &&
+          (lower.includes("animevietsub") || lower.includes("xác minh an toàn"));
+
+        if (isAnimevietsubChallenge) {
+          return {
+            candidate: url,
+            origin: url,
+            ok: true,
+            statusCode: res.status,
+            responseTimeMs,
+            finalUrl,
+          };
+        }
 
         // Check if HTML actually contains provider content signatures despite status code
         const verification = verifyProviderHtml(html);
@@ -440,18 +463,6 @@ export class AnimevietsubDomainResolver implements IDomainResolver, IAnimevietsu
           };
         }
 
-        if (isCloudflare && matchesLabel(finalHost, this.label)) {
-          return {
-            candidate: url,
-            origin: url,
-            ok: true,
-            statusCode: res.status,
-            responseTimeMs,
-            finalUrl,
-            reason: "Domain active behind Cloudflare challenge",
-          };
-        }
-
         return {
           candidate: url,
           origin: url,
@@ -459,7 +470,9 @@ export class AnimevietsubDomainResolver implements IDomainResolver, IAnimevietsu
           statusCode: res.status,
           responseTimeMs,
           finalUrl,
-          reason: `HTTP ${res.status} error response`,
+          reason: isCloudflare
+            ? "Domain blocked behind Cloudflare challenge / Turnstile"
+            : `HTTP ${res.status} error response`,
         };
       }
 

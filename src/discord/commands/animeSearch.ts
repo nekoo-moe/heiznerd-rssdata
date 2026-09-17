@@ -6,11 +6,11 @@ import { BotCommand } from "../types";
 export const animeSearchCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("anime-search")
-    .setDescription("Tìm kiếm anime trên AnimeVietsub")
+    .setDescription("🔎 Tìm kiếm phim anime trên AnimeVietsub & xem thông tin chi tiết")
     .addStringOption((option) =>
       option
         .setName("query")
-        .setDescription("Tên phim muốn tìm kiếm")
+        .setDescription("Tên phim anime muốn tìm kiếm")
         .setRequired(true)
     ),
   execute: async (interaction: ChatInputCommandInteraction) => {

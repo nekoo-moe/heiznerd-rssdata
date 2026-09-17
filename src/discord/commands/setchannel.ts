@@ -7,15 +7,15 @@ import {
 import { GuildRepository } from "../../database/repositories/guildRepo";
 import { BotCommand } from "../types";
 
-export const setChannelCommand: BotCommand = {
+export const mangaSetChannelCommand: BotCommand = {
   data: new SlashCommandBuilder()
-    .setName("setchannel")
-    .setDescription("Chọn kênh nhận thông báo truyện mới từ Cuutruyen.net")
+    .setName("manga-setchannel")
+    .setDescription("🔔 Cài đặt kênh nhận thông báo chương truyện mới từ Cuutruyen")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .addChannelOption((option) =>
       option
         .setName("channel")
-        .setDescription("Kênh text bạn muốn nhận thông báo")
+        .setDescription("Kênh text bạn muốn nhận thông báo truyện")
         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
         .setRequired(true)
     )

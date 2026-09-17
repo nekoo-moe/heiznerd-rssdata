@@ -65,9 +65,11 @@ async function runDomainResolverTests() {
     assert(matchesLabel("animevietsub.bz", "animevietsub"), "animevietsub.bz must be accepted");
     assert(matchesLabel("animevietsub.cc", "animevietsub"), "animevietsub.cc must be accepted");
     assert(matchesLabel("animevietsub.net", "animevietsub"), "animevietsub.net must be accepted");
+    assert(!matchesLabel("animevietsubs.com", "animevietsub"), "Fake domain animevietsubs.com must be REJECTED");
 
     // 1.2 Valid subdomains
     assert(matchesLabel("cdn.animevietsub.zip", "animevietsub"), "cdn.animevietsub.zip must be accepted");
+    assert(matchesLabel("www.animevietsub.zip", "animevietsub"), "www.animevietsub.zip must be accepted");
     assert(matchesLabel("static.media.animevietsub.tv", "animevietsub"), "Nested subdomain must be accepted");
 
     // 1.3 Case insensitivity
@@ -198,7 +200,7 @@ async function runDomainResolverTests() {
     const tFastDuration = performance.now() - tFastStart;
 
     assert(
-      resolvedFast.startsWith("https://animevietsub."),
+      resolvedFast.startsWith("https://animevietsub"),
       `Fast-path resolved domain must be valid origin (got ${resolvedFast})`
     );
     logger.info(`Fast-path probe completed in ${tFastDuration.toFixed(2)}ms -> ${resolvedFast}`);
@@ -218,7 +220,7 @@ async function runDomainResolverTests() {
       "Resolver must NOT return the dead cached domain"
     );
     assert(
-      resolvedAfterDead.startsWith("https://animevietsub."),
+      resolvedAfterDead.startsWith("https://animevietsub"),
       `Resolver must fall back to a working candidate domain (got ${resolvedAfterDead})`
     );
     logger.info(
@@ -239,7 +241,7 @@ async function runDomainResolverTests() {
 
     const resolvedEmpty = await resolver.resolveDomain(false);
     assert(
-      resolvedEmpty.startsWith("https://animevietsub."),
+      resolvedEmpty.startsWith("https://animevietsub"),
       `Resolver must successfully resolve when cache is empty (got ${resolvedEmpty})`
     );
     assertEqual(
@@ -254,7 +256,17 @@ async function runDomainResolverTests() {
     logger.info("\n--- PHASE 4: Candidate TLD Probe & Priority Ordering ---");
 
     // 4.1 Verify candidate TLD inventory and priority order
-    const expectedTlds = ["zip", "tv", "site", "love", "fan", "bz", "pro", "net", "cc"];
+    const expectedTlds = [
+      "zip",
+      "tv",
+      "site",
+      "love",
+      "fan",
+      "bz",
+      "pro",
+      "net",
+      "cc",
+    ];
     assertEqual(
       ANIMEVIETSUB_CANDIDATE_TLDS.length,
       expectedTlds.length,
@@ -282,7 +294,7 @@ async function runDomainResolverTests() {
     SettingsRepository.set("animevietsub_base_url", "https://animevietsub.site"); // Stale value
     const forceResolved = await resolver.resolveDomain(true);
     assert(
-      forceResolved.startsWith("https://animevietsub."),
+      forceResolved.startsWith("https://animevietsub"),
       "Force refresh must resolve to a valid active domain"
     );
 

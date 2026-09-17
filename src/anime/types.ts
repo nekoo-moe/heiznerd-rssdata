@@ -121,6 +121,25 @@ export interface AnimeSearchResult {
 }
 
 /**
+ * Detailed anime page metadata extracted directly from AnimeVietsub detail page.
+ */
+export interface AnimeDetailData {
+  title: string;
+  subTitle?: string;
+  posterUrl: string;
+  bannerUrl?: string;
+  description?: string;
+  genres: string[];
+  rating?: number;
+  voteText?: string;
+  year?: string;
+  episodeTotal?: string;
+  views?: string;
+  country?: string;
+  isChineseAnimation?: boolean;
+}
+
+/**
  * Scraper configuration options.
  */
 export interface AnimevietsubScraperOptions {
@@ -135,6 +154,7 @@ export interface AnimevietsubScraperOptions {
 export interface IAnimevietsubScraper {
   getLatestEpisodes(limit?: number): Promise<AnimeEpisodeItem[]>;
   searchAnime(query: string, limit?: number): Promise<AnimeSearchResult[]>;
+  getAnimeDetails?(animeUrl: string): Promise<AnimeDetailData | null>;
   getActiveBaseUrl?(): Promise<string>;
   close?(): Promise<void>;
 }
@@ -160,6 +180,7 @@ export interface AniListMetadata {
   episodes: number | null;
   description: string | null;
   siteUrl: string;
+  countryOfOrigin?: string | null;
 }
 
 /**
@@ -176,8 +197,8 @@ export interface NormalizedTitle {
  * Interface contract for AniList GraphQL Service.
  */
 export interface IAnilistService {
-  enrich(title: string, animeUrl?: string): Promise<AniListMetadata | null>;
-  normalizeTitle(rawTitle: string, animeUrl?: string): NormalizedTitle;
+  enrich(title: string, animeUrl?: string, extraCandidates?: string[]): Promise<AniListMetadata | null>;
+  normalizeTitle(rawTitle: string, animeUrl?: string, extraCandidates?: string[]): NormalizedTitle;
 }
 
 // ============================================================================

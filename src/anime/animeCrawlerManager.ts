@@ -7,6 +7,7 @@ import { discordQueue } from "../discord/rateLimiter";
 import { logger } from "../utils/logger";
 import { anilistService } from "./anilistService";
 import { animevietsubScraper } from "./animevietsubScraper";
+import { isChineseAnimation } from "./normalizer";
 import { AnimeCrawlerStats, AnimeEpisodeItem } from "./types";
 
 export class AnimeCrawlerManager {
@@ -112,10 +113,35 @@ export class AnimeCrawlerManager {
 
       for (const ep of toNotify) {
         try {
-          logger.crawler(`Enriching AniList metadata for anime "${ep.animeTitle}" (${ep.episodeName})...`);
-          const metadata = await anilistService.enrich(ep.animeTitle, ep.animeUrl).catch(() => null);
+          logger.crawler(`Enriching metadata for anime "${ep.animeTitle}" (${ep.episodeName})...`);
+          const detail = await animevietsubScraper.getAnimeDetails(ep.animeUrl).catch(() => null);
 
-          const sendSuccess = await this.dispatchEpisodeNotification(ep, metadata);
+          // Fast-check if detail already identifies it as Chinese animation or Cartoon
+          if (isChineseAnimation(detail, null)) {
+            logger.info(
+              `[AnimeCrawler] Filtered out Chinese animation/cartoon: "${ep.animeTitle}" (${ep.episodeName})`
+            );
+            AnimeEpisodeRepository.markNotified(ep);
+            continue;
+          }
+
+          const extraCandidates = detail?.subTitle
+            ? detail.subTitle.split(/[,;]/).map((s) => s.trim())
+            : undefined;
+
+          const metadata = await anilistService
+            .enrich(ep.animeTitle, ep.animeUrl, extraCandidates)
+            .catch(() => null);
+
+          if (isChineseAnimation(detail, metadata)) {
+            logger.info(
+              `[AnimeCrawler] Filtered out Chinese animation/cartoon via AniList: "${ep.animeTitle}" (${ep.episodeName})`
+            );
+            AnimeEpisodeRepository.markNotified(ep);
+            continue;
+          }
+
+          const sendSuccess = await this.dispatchEpisodeNotification(ep, metadata, detail);
 
           if (sendSuccess) {
             AnimeEpisodeRepository.markNotified(ep);
@@ -144,7 +170,8 @@ export class AnimeCrawlerManager {
 
   private async dispatchEpisodeNotification(
     episode: AnimeEpisodeItem,
-    metadata: any
+    metadata: any,
+    detail?: any
   ): Promise<boolean> {
     if (!this.discordClient) {
       logger.warn("Discord client not available. Cannot dispatch anime notification.");
@@ -160,7 +187,7 @@ export class AnimeCrawlerManager {
       return true;
     }
 
-    const payload = DiscordAnimeEmbedBuilder.buildAnimeNotification(episode, metadata);
+    const payload = DiscordAnimeEmbedBuilder.buildAnimeNotification(episode, metadata, detail);
     let sentCount = 0;
 
     for (const conf of channels) {

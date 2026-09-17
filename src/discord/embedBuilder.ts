@@ -8,10 +8,11 @@ import {
   MessageFlags,
   SectionBuilder,
   SeparatorBuilder,
+  StringSelectMenuBuilder,
   TextDisplayBuilder,
   ThumbnailBuilder,
 } from "discord.js";
-import { EnrichedChapterNotification } from "../crawler/types";
+import { EnrichedChapterNotification, MangaDetail } from "../crawler/types";
 
 function parseHexColor(hex?: string): number {
   if (!hex || !hex.startsWith("#")) return 0x4dba87;
@@ -199,7 +200,7 @@ export class DiscordEmbedBuilder {
   }
 
   /**
-   * Builds Component V2 search results.
+   * Builds Component V2 search results with interactive dropdown selection.
    */
   public static buildSearchResults(query: string, results: any[]) {
     const container = new ContainerBuilder().setAccentColor(0x4dba87);
@@ -225,7 +226,111 @@ export class DiscordEmbedBuilder {
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(listContent)
       );
+
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId("select_manga_detail")
+        .setPlaceholder("📖 Chọn truyện để xem chi tiết tác phẩm...")
+        .addOptions(
+          results.slice(0, 10).map((r) => ({
+            label: (r.name || "Không rõ tên").substring(0, 100),
+            value: String(r.id),
+            description: (r.author_name ? `Tác giả: ${r.author_name}` : "Xem thông tin chi tiết & danh sách chương").substring(0, 100),
+            emoji: "📖",
+          }))
+        );
+
+      const actionRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+      container.addActionRowComponents(actionRow);
     }
+
+    return {
+      components: [container],
+      flags: MessageFlags.IsComponentsV2 as any,
+    };
+  }
+
+  /**
+   * Builds Component V2 detail card for a selected manga.
+   */
+  public static buildMangaDetailCard(manga: MangaDetail) {
+    const accentColor = parseHexColor(manga.panorama_dominant_color);
+    const container = new ContainerBuilder().setAccentColor(accentColor);
+
+    // 1. Panoramic Wide Banner at top if available
+    const panoramaUrl = manga.panorama_url || manga.panorama_mobile_url;
+    if (panoramaUrl) {
+      const gallery = new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL(panoramaUrl).setDescription(manga.name)
+      );
+      container.addMediaGalleryComponents(gallery);
+    }
+
+    const mangaUrl = manga.official_url || `https://cuutruyen.net/mangas/${manga.id}`;
+    const altTitles = manga.titles && manga.titles.length > 0
+      ? manga.titles.filter(t => !t.primary && t.name !== manga.name).map(t => t.name).slice(0, 2).join(" • ")
+      : "";
+    const altTitlesLine = altTitles ? `\n*${altTitles}*` : "";
+
+    const titleText = `## 📖 [${manga.name}](${mangaUrl})${altTitlesLine}`;
+
+    // 2. Header Section with Book Cover Thumbnail Accessory
+    const coverUrl = manga.cover_url || manga.cover_mobile_url;
+    if (coverUrl) {
+      const headerSection = new SectionBuilder()
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(titleText))
+        .setThumbnailAccessory(
+          new ThumbnailBuilder().setURL(coverUrl).setDescription(manga.name)
+        );
+      container.addSectionComponents(headerSection);
+    } else {
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(titleText));
+    }
+
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+    // 3. Description
+    const rawDesc = manga.full_description || manga.description || "Chưa có tóm tắt cho bộ truyện này.";
+    const cleanDesc = rawDesc.replace(/<[^>]+>/g, "").trim();
+    const descriptionSnippet =
+      cleanDesc.length > 350
+        ? cleanDesc.substring(0, 347) + "..."
+        : cleanDesc;
+
+    // 4. Tags
+    const tagsDisplay =
+      manga.tags && manga.tags.length > 0
+        ? manga.tags.slice(0, 8).map((t) => `\`${t.name}\``).join(" ")
+        : "Không có";
+
+    // 5. Metadata
+    const latestChapterText = manga.newest_chapter_number
+      ? `Chapter ${manga.newest_chapter_number}`
+      : "Đang cập nhật";
+    const viewsText = manga.views_count != null ? manga.views_count.toLocaleString() : "Đang cập nhật";
+    const chaptersText = manga.chapters_count != null ? `${manga.chapters_count} chương` : "Đang cập nhật";
+
+    const detailsText = new TextDisplayBuilder().setContent(
+      `> *${descriptionSnippet}*\n\n` +
+        `👤 **Tác giả:** ${manga.author?.name || "Đang cập nhật"}\n` +
+        `👥 **Nhóm dịch:** ${manga.team?.name || "Cứu Truyện"}\n` +
+        `🏷️ **Thể loại:** ${tagsDisplay}\n` +
+        `📚 **Số chương:** ${chaptersText} • ⚡ **Mới nhất:** ${latestChapterText}\n` +
+        `👁️ **Lượt xem:** ${viewsText}`
+    );
+    container.addTextDisplayComponents(detailsText);
+
+    // 6. Interactive Action Buttons
+    const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setLabel("📖 Đọc Truyện Trên Cuutruyen")
+        .setStyle(ButtonStyle.Link)
+        .setURL(mangaUrl),
+      new ButtonBuilder()
+        .setLabel("🌐 Trang Chủ Cuutruyen")
+        .setStyle(ButtonStyle.Link)
+        .setURL("https://cuutruyen.net")
+    );
+    container.addActionRowComponents(actionRow);
 
     return {
       components: [container],

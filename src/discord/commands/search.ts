@@ -7,14 +7,14 @@ import { cuutruyenClient } from "../../crawler/cuutruyenClient";
 import { DiscordEmbedBuilder } from "../embedBuilder";
 import { BotCommand } from "../types";
 
-export const searchCommand: BotCommand = {
+export const mangaSearchCommand: BotCommand = {
   data: new SlashCommandBuilder()
-    .setName("search")
-    .setDescription("Tìm kiếm truyện tranh trên Cuutruyen.net")
+    .setName("manga-search")
+    .setDescription("🔎 Tìm kiếm truyện tranh trên Cuutruyen & xem thông tin chi tiết")
     .addStringOption((option) =>
       option
         .setName("query")
-        .setDescription("Tên truyện cần tìm")
+        .setDescription("Tên bộ truyện tranh cần tìm kiếm")
         .setRequired(true)
     ),
   execute: async (interaction: ChatInputCommandInteraction) => {

@@ -15,11 +15,24 @@ export async function deployCommands(): Promise<void> {
   const commandData = commands.map((c) => c.data.toJSON());
 
   try {
-    logger.discord(`Deploying ${commandData.length} application (/) commands to Discord...`);
+    // First, purge any guild-specific commands to eliminate duplicates with global commands
+    try {
+      const guilds = (await rest.get(Routes.userGuilds())) as any[];
+      for (const guild of guilds) {
+        await rest.put(Routes.applicationGuildCommands(clientId, guild.id), {
+          body: [],
+        });
+        logger.discord(`Cleaned up duplicate guild commands in "${guild.name}" (${guild.id})`);
+      }
+    } catch (gErr) {
+      logger.warn("Could not clean guild-specific commands:", gErr);
+    }
+
+    logger.discord(`Deploying ${commandData.length} application (/) commands to Discord (globally)...`);
     await rest.put(Routes.applicationCommands(clientId), {
       body: commandData,
     });
-    logger.success("Successfully deployed application (/) commands globally!");
+    logger.success(`Successfully deployed ${commandData.length} application (/) commands globally!`);
   } catch (error) {
     logger.error("Failed to deploy commands:", error);
   }

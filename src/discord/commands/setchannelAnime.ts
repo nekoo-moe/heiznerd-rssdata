@@ -7,10 +7,10 @@ import {
 import { GuildAnimeRepository } from "../../database/repositories/guildAnimeRepo";
 import { BotCommand } from "../types";
 
-export const setChannelAnimeCommand: BotCommand = {
+export const animeSetChannelCommand: BotCommand = {
   data: new SlashCommandBuilder()
-    .setName("setchannel-anime")
-    .setDescription("Chọn kênh nhận thông báo tập anime mới từ AnimeVietsub")
+    .setName("anime-setchannel")
+    .setDescription("🔔 Cài đặt kênh nhận thông báo tập anime mới từ AnimeVietsub")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .addChannelOption((option) =>
       option

@@ -7,10 +7,10 @@ import { cuutruyenClient } from "../../crawler/cuutruyenClient";
 import { DiscordEmbedBuilder } from "../embedBuilder";
 import { BotCommand } from "../types";
 
-export const newestCommand: BotCommand = {
+export const mangaNewestCommand: BotCommand = {
   data: new SlashCommandBuilder()
-    .setName("newest")
-    .setDescription("Gửi bộ truyện mới nhất vừa cập nhật qua Discord Component V2 kèm ảnh bìa")
+    .setName("manga-newest")
+    .setDescription("⚡ Xem ngay chương truyện tranh mới nhất vừa phát hành trên Cuutruyen")
     .addBooleanOption((option) =>
       option
         .setName("broadcast")

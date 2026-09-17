@@ -9,7 +9,7 @@ import { BotCommand } from "../types";
 export const statusCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("status")
-    .setDescription("Xem thông số hoạt động của bot và crawler"),
+    .setDescription("📊 Xem thông số hoạt động của hệ thống, crawler và phiên kết nối"),
   execute: async (interaction: ChatInputCommandInteraction) => {
     const clientStatus = cuutruyenClient.getStatus();
     const channelsCount = GuildRepository.count();
